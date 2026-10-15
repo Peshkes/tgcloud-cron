@@ -1,6 +1,10 @@
 import assert from 'node:assert/strict';
+import { webcrypto } from 'node:crypto';
 import { afterEach, beforeEach, describe, test } from 'node:test';
 import { createScheduledHandler } from '../src/worker.js';
+
+// Workers have a global crypto; Node 18 does not.
+globalThis.crypto ??= webcrypto as typeof globalThis.crypto;
 
 const jobs = { digest: { schedule: '0 9 * * *', module: 'lib/cron/digest' } };
 

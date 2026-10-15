@@ -1,0 +1,31 @@
+name: Bug report
+description: Something does not work as documented
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: Do not paste your TGCLOUD_TOKEN or other secrets. The `app<id>` part is fine.
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened
+      description: Command, output, and what you expected instead.
+    validations:
+      required: true
+  - type: textarea
+    id: config
+    attributes:
+      label: tgcron.json
+      render: json
+  - type: input
+    id: versions
+    attributes:
+      label: Versions
+      placeholder: tgcloud-cron 0.1.0, @tgcloud/cli 0.2.0, Node 22
+    validations:
+      required: true
+  - type: dropdown
+    id: target
+    attributes:
+      label: Scheduler
+      options: [GitHub Actions, Cloudflare Workers, local CLI only]

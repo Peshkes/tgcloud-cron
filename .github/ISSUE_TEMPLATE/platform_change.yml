@@ -1,0 +1,24 @@
+name: Platform behaviour report
+description: The live Telegram Serverless API behaves differently from what tgcloud-cron assumes
+labels: [platform]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        These reports are the most valuable ones while the API is undocumented.
+        Output of `npm run verify:live` helps. Remove the token before pasting.
+  - type: textarea
+    id: observed
+    attributes:
+      label: What the platform did
+    validations:
+      required: true
+  - type: textarea
+    id: assumed
+    attributes:
+      label: What tgcloud-cron assumed
+  - type: input
+    id: cli
+    attributes:
+      label: "@tgcloud/cli version"
+      placeholder: 0.2.0
