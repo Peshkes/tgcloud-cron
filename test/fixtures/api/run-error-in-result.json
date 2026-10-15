@@ -1,0 +1,12 @@
+[
+  {
+    "request": { "method": "POST", "path": "/app123/manage/run" },
+    "response": {
+      "status": 200,
+      "body": {
+        "ok": true,
+        "result": { "result": { "__error": true, "message": "boom" }, "log": [], "time": 0.01 }
+      }
+    }
+  }
+]

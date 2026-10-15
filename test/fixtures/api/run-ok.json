@@ -1,0 +1,19 @@
+[
+  {
+    "request": { "method": "POST", "path": "/app123/manage/run" },
+    "response": {
+      "status": 200,
+      "body": {
+        "ok": true,
+        "result": {
+          "result": { "sent": 42 },
+          "log": [
+            { "_": "log", "t": 0.004, "m": "sending to 42 chats", "o": "lib/cron/dailyDigest:18" },
+            { "_": "wrn", "t": 0.31, "M": "slow chat 1001", "o": { "m": "lib/cron/dailyDigest", "l": 25 } }
+          ],
+          "time": 0.84
+        }
+      }
+    }
+  }
+]

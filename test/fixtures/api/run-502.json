@@ -1,0 +1,6 @@
+[
+  {
+    "request": { "method": "POST", "path": "/app123/manage/run" },
+    "response": { "status": 502, "text": "Bad Gateway" }
+  }
+]

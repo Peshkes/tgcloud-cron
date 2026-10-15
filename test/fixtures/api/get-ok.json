@@ -1,0 +1,19 @@
+[
+  {
+    "request": { "method": "GET", "path": "/app123/manage/get" },
+    "response": {
+      "status": 200,
+      "body": {
+        "ok": true,
+        "result": {
+          "revision": 41,
+          "canonical_modules": {
+            "schema": "import { table, integer, text } from 'sdk/db';\nexport const users = table('users', { id: integer('id').primaryKey(), name: text('name') });\n",
+            "lib/cron/dailyDigest": "export default async function (args) { return { sent: 0 }; }\n",
+            "handlers/message": "export default async function (message) {}\n"
+          }
+        }
+      }
+    }
+  }
+]

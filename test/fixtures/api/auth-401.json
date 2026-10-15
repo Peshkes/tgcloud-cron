@@ -1,0 +1,9 @@
+[
+  {
+    "request": { "method": "GET", "path": "/app123/manage/get" },
+    "response": {
+      "status": 401,
+      "body": { "ok": false, "error_code": 401, "description": "Unauthorized: token revoked" }
+    }
+  }
+]

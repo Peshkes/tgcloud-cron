@@ -1,0 +1,13 @@
+[
+  {
+    "request": { "method": "GET", "path": "/app123/manage/get" },
+    "response": { "status": 502, "text": "<html><body>Bad Gateway</body></html>" }
+  },
+  {
+    "request": { "method": "GET", "path": "/app123/manage/get" },
+    "response": {
+      "status": 200,
+      "body": { "ok": true, "result": { "revision": 1, "canonical_modules": {} } }
+    }
+  }
+]
