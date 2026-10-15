@@ -44,6 +44,9 @@ export function generateCloudflare(config: Config, options: CloudflareOptions): 
     name,
     main: 'worker.js',
     compatibility_date: options.compatibilityDate ?? DEFAULT_COMPATIBILITY_DATE,
+    // The Worker only runs on schedule; it needs no public URL.
+    workers_dev: false,
+    preview_urls: false,
     triggers: { crons },
     observability: { enabled: true },
   };

@@ -247,7 +247,11 @@ export class TgcloudClient {
       text = await res.text();
     } catch (err) {
       const reason = err instanceof Error ? err.message : String(err);
-      throw new ApiError('network', `${method} ${path}: ${clean(reason)}`, undefined);
+      throw new ApiError(
+        'network',
+        `${method} ${path}: cannot reach ${this.baseUrl}: ${clean(reason)}`,
+        undefined,
+      );
     }
     return parseEnvelope(method, path, res.status, text);
   }

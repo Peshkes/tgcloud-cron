@@ -88,7 +88,7 @@ describe('getDeployed', () => {
       return (
         err instanceof ApiError &&
         err.kind === 'network' &&
-        /GET \/get: fetch failed/.test(err.message)
+        /GET \/get: cannot reach https:\/\/cloud\.telegram\.org: fetch failed/.test(err.message)
       );
     });
   });
