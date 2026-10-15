@@ -58,5 +58,5 @@ export interface Deps {
   readonly now: () => Date;
   readonly newRunId: () => string;
   /** Required by backup jobs. */
-  readonly backupSink?: (startedAt: Date) => BackupSink;
+  readonly backupSink?: (job: string, startedAt: Date) => BackupSink;
 }

@@ -1,0 +1,86 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://github.com/Peshkes/tgcloud-cron/blob/main/schema.json",
+  "title": "tgcron.json",
+  "description": "Scheduled jobs for a Telegram Serverless project. Schedules are UTC.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["jobs"],
+  "properties": {
+    "$schema": { "type": "string" },
+    "jobs": {
+      "type": "object",
+      "propertyNames": { "pattern": "^[A-Za-z][A-Za-z0-9_-]{0,63}$" },
+      "additionalProperties": {
+        "oneOf": [{ "$ref": "#/definitions/moduleJob" }, { "$ref": "#/definitions/backupJob" }]
+      }
+    }
+  },
+  "definitions": {
+    "schedule": {
+      "type": "string",
+      "description": "Five-field cron expression (minute hour day-of-month month day-of-week), UTC.",
+      "examples": ["0 9 * * *", "*/15 * * * *", "30 2 * * MON-FRI"]
+    },
+    "moduleJob": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["schedule"],
+      "properties": {
+        "schedule": { "$ref": "#/definitions/schedule" },
+        "module": {
+          "type": "string",
+          "description": "Module under tgcloud/lib/, without .js. Default: lib/cron/<job name>.",
+          "pattern": "^lib(/[A-Za-z0-9_-]+)+$"
+        },
+        "args": { "type": "object", "description": "Passed to the job as its first argument." },
+        "enabled": { "type": "boolean", "default": true }
+      }
+    },
+    "backupJob": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["schedule", "use"],
+      "properties": {
+        "schedule": { "$ref": "#/definitions/schedule" },
+        "use": { "const": "tgcloud-cron/backup" },
+        "enabled": { "type": "boolean", "default": true },
+        "args": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "tables": {
+              "type": "array",
+              "minItems": 1,
+              "items": { "type": "string", "pattern": "^[A-Za-z_][A-Za-z0-9_]*$" },
+              "description": "Tables to export. Default: every table in sqlite_master."
+            },
+            "pageSize": { "type": "integer", "minimum": 1, "maximum": 10000, "default": 500 }
+          }
+        },
+        "destination": {
+          "oneOf": [
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["type"],
+              "properties": {
+                "type": { "const": "artifact" },
+                "retentionDays": { "type": "integer", "minimum": 1, "maximum": 90, "default": 30 }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["type"],
+              "properties": {
+                "type": { "const": "branch" },
+                "branch": { "type": "string", "default": "tgcron-backups" }
+              }
+            }
+          ]
+        }
+      }
+    }
+  }
+}

@@ -38,7 +38,7 @@ export async function runBackup(
   ids: { job: string; runId: string },
   startedAt: Date,
 ): Promise<BackupSummary> {
-  const sink = deps.backupSink?.(startedAt);
+  const sink = deps.backupSink?.(job.name, startedAt);
   if (!sink) throw new Error('backup jobs need a file system; run them with the CLI');
   const sources = moduleSpace(modules, { [BACKUP_MODULE]: BACKUP_SOURCE });
   const progress = (message: string) => deps.emit({ type: 'progress', ...ids, message });
