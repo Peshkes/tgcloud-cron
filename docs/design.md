@@ -1,7 +1,7 @@
 # tgcloud-cron: design note
 
-Status: draft for review, 2026-10-15. Nothing here has been run against the live
-platform yet.
+Status: approved 2026-10-15, implemented in 0.1.0. Nothing here has been run
+against the live platform yet.
 
 ## Problem
 
@@ -126,8 +126,7 @@ GitHub target (Actions does not run schedules more often than that).
 Supported: `*`, numbers, ranges `a-b`, steps `*/n` and `a-b/n`, lists `a,b`,
 month and weekday names (`JAN`, `MON`), weekday `0` and `7` as Sunday. Standard
 day-of-month / day-of-week OR rule. Not supported: `L`, `W`, `#`, `?`, seconds,
-`@daily` macros (Actions does not accept them). The parser is about 150 lines
-and has no dependency.
+`@daily` macros (Actions does not accept them). The parser has no dependency.
 
 ## CLI
 
@@ -172,17 +171,17 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with: { node-version: 20 }
-      - run: npx --yes tgcloud-cron@0.1.0 tick --schedule "${{ github.event.schedule }}"
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with: { node-version: "24" }
+      - run: npx --yes tgcloud-cron@0.1.0 tick --schedule "$SCHEDULE"
         if: github.event_name == 'schedule'
-        env: { TGCLOUD_TOKEN: "${{ secrets.TGCLOUD_TOKEN }}" }
-      - run: npx --yes tgcloud-cron@0.1.0 run "${{ inputs.job }}"
+        env: { TGCLOUD_TOKEN: "${{ secrets.TGCLOUD_TOKEN }}", SCHEDULE: "${{ github.event.schedule }}" }
+      - run: npx --yes tgcloud-cron@0.1.0 run "$JOB"
         if: github.event_name == 'workflow_dispatch'
-        env: { TGCLOUD_TOKEN: "${{ secrets.TGCLOUD_TOKEN }}" }
+        env: { TGCLOUD_TOKEN: "${{ secrets.TGCLOUD_TOKEN }}", JOB: "${{ inputs.job }}" }
       # present only when a backup job exists
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         if: hashFiles('tgcron-backup/**') != ''
         with: { name: "backup-${{ github.run_id }}", path: tgcron-backup/, retention-days: 30 }
 ```
@@ -206,8 +205,11 @@ One module, `src/adapters/tgcloud/client.ts`, with three calls: `getDeployed`,
 `run`, and `capabilities`. It takes `fetch` and the base URL as parameters, so
 the same code runs in Node and in a Worker and is tested against recorded
 fixtures. It mirrors the official CLI: same URL scheme, headers, envelope
-parsing, control-character stripping of server text. On 429 and 5xx it retries
-up to three times with backoff, using `retry_after` if the server sends it.
+parsing, control-character stripping of server text. `/get` and the backup
+exporter's reads are retried on 429, 5xx and network errors, up to three times
+with backoff, using `retry_after` if the server sends it. A job's `/run` is
+retried only on 429: after a 5xx or a dropped connection the job may already
+have run, and running it twice can send messages twice.
 
 ## Built-in job: backup
 
