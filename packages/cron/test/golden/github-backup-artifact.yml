@@ -12,13 +12,13 @@ on:
         required: true
         type: choice
         options:
-          - backup
+          - "backup"
 
 permissions:
   contents: read
 
 concurrency:
-  group: tgcron-${{ github.event.schedule || inputs.job }}
+  group: tgcron-${{ github.event.schedule || inputs.job == 'backup' && '30 2 * * *' || inputs.job }}
   cancel-in-progress: false
 
 jobs:
@@ -43,7 +43,7 @@ jobs:
           TGCLOUD_TOKEN: ${{ secrets.TGCLOUD_TOKEN }}
           JOB: ${{ inputs.job }}
       - name: Upload backup backup
-        if: always() && hashFiles('tgcron-backup/backup/**') != ''
+        if: always() && hashFiles('tgcron-backup/backup/*/manifest.json') != ''
         uses: actions/upload-artifact@v7
         with:
           name: backup-${{ github.run_id }}

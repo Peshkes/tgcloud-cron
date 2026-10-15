@@ -12,13 +12,13 @@ on:
         required: true
         type: choice
         options:
-          - backup
+          - "backup"
 
 permissions:
   contents: write
 
 concurrency:
-  group: tgcron-${{ github.event.schedule || inputs.job }}
+  group: tgcron-${{ github.event.schedule || inputs.job == 'backup' && '30 2 * * *' || inputs.job }}
   cancel-in-progress: false
 
 jobs:
@@ -42,22 +42,35 @@ jobs:
         env:
           TGCLOUD_TOKEN: ${{ secrets.TGCLOUD_TOKEN }}
           JOB: ${{ inputs.job }}
-      - name: Commit backup backup to tgcron-backups
-        if: always() && hashFiles('tgcron-backup/backup/**') != ''
+      - name: Commit backups to tgcron-backups
+        if: always() && (hashFiles('tgcron-backup/backup/*/manifest.json') != '')
         run: |
           set -euo pipefail
           branch='tgcron-backups'
+          dir='.tgcron-branch-0'
           git config --global user.name 'github-actions[bot]'
           git config --global user.email '41898299+github-actions[bot]@users.noreply.github.com'
-          if git fetch --depth=1 origin "$branch"; then
-            git worktree add -B "$branch" .tgcron-branch FETCH_HEAD
-          else
-            git worktree add --detach .tgcron-branch
-            git -C .tgcron-branch checkout --orphan "$branch"
-            git -C .tgcron-branch rm -rfq .
-          fi
-          mkdir -p .tgcron-branch/backup
-          cp -R tgcron-backup/backup/. .tgcron-branch/backup/
-          git -C .tgcron-branch add backup
-          git -C .tgcron-branch commit -qm "Backup backup $(date -u +%Y-%m-%dT%H:%MZ)"
-          git -C .tgcron-branch push origin "$branch"
+          git worktree remove --force "$dir" 2>/dev/null || true
+          git worktree add --detach "$dir"
+          for attempt in 1 2 3; do
+            if git -C "$dir" fetch --depth=1 origin "refs/heads/$branch"; then
+              git -C "$dir" checkout -q -f --detach FETCH_HEAD
+            else
+              git -C "$dir" checkout -q -f --orphan "tgcron-new-$attempt"
+              git -C "$dir" rm -rfq --ignore-unmatch .
+            fi
+            for job in backup; do
+              for run in tgcron-backup/"$job"/*/; do
+                [ -f "$run/manifest.json" ] || continue
+                mkdir -p "$dir/$job"
+                cp -R "${run%/}" "$dir/$job/"
+              done
+            done
+            git -C "$dir" add -A
+            if git -C "$dir" diff --cached --quiet; then echo "Nothing new to commit."; exit 0; fi
+            git -C "$dir" commit -qm "Backup $(date -u +%Y-%m-%dT%H:%MZ)"
+            if git -C "$dir" push origin "HEAD:refs/heads/$branch"; then exit 0; fi
+            sleep $((attempt * 5))
+          done
+          echo "Could not push to $branch after 3 attempts." >&2
+          exit 1

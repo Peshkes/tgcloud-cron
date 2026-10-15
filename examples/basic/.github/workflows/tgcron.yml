@@ -14,15 +14,15 @@ on:
         required: true
         type: choice
         options:
-          - dailyDigest
-          - syncPrices
-          - backup
+          - "dailyDigest"
+          - "syncPrices"
+          - "backup"
 
 permissions:
   contents: read
 
 concurrency:
-  group: tgcron-${{ github.event.schedule || inputs.job }}
+  group: tgcron-${{ github.event.schedule || inputs.job == 'dailyDigest' && '0 9 * * *' || inputs.job == 'syncPrices' && '*/15 * * * *' || inputs.job == 'backup' && '30 2 * * *' || inputs.job }}
   cancel-in-progress: false
 
 jobs:
@@ -36,18 +36,18 @@ jobs:
           node-version: "24"
       - name: Run scheduled jobs
         if: github.event_name == 'schedule'
-        run: npx --yes tgcloud-cron@0.1.0 tick --schedule "$SCHEDULE"
+        run: npx --yes tgcloud-cron@0.2.0 tick --schedule "$SCHEDULE"
         env:
           TGCLOUD_TOKEN: ${{ secrets.TGCLOUD_TOKEN }}
           SCHEDULE: ${{ github.event.schedule }}
       - name: Run job on demand
         if: github.event_name == 'workflow_dispatch'
-        run: npx --yes tgcloud-cron@0.1.0 run "$JOB"
+        run: npx --yes tgcloud-cron@0.2.0 run "$JOB"
         env:
           TGCLOUD_TOKEN: ${{ secrets.TGCLOUD_TOKEN }}
           JOB: ${{ inputs.job }}
       - name: Upload backup backup
-        if: always() && hashFiles('tgcron-backup/backup/**') != ''
+        if: always() && hashFiles('tgcron-backup/backup/*/manifest.json') != ''
         uses: actions/upload-artifact@v7
         with:
           name: backup-${{ github.run_id }}

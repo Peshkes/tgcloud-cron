@@ -19,12 +19,14 @@ describe('generateGithubWorkflow', () => {
         dailyDigest: { schedule: '0 9 * * *' },
         syncPrices: { schedule: '*/15 * * * *' },
         weeklyReport: { schedule: '0  9 * * *' },
+        weekdays: { schedule: '0 8 * * MON-FRI' },
         paused: { schedule: '0 3 * * *', enabled: false },
       }),
       options,
     );
     assertGolden('github-modules.yml', yaml);
-    assert.equal(yaml.match(/- cron:/g)?.length, 2, 'one entry per distinct schedule');
+    assert.equal(yaml.match(/- cron:/g)?.length, 3, 'one entry per distinct schedule');
+    assert.match(yaml, /- cron: "0 8 \* \* 1-5"/);
     assert.doesNotMatch(yaml, /paused/);
     assert.match(yaml, /contents: read/);
     assert.doesNotMatch(yaml, /run: .*\$\{\{/, 'expressions reach scripts through env only');

@@ -1,4 +1,5 @@
-import type { BackupJob, Config } from '../../core/config.js';
+import type { BackupJob, Config, Job } from '../../core/config.js';
+import { formatCron } from '../../core/cron.js';
 import { distinctSchedules, enabledJobs } from '../../core/registry.js';
 
 export const WORKFLOW_PATH = '.github/workflows/tgcron.yml';
@@ -32,14 +33,14 @@ export function generateGithubWorkflow(config: Config, options: WorkflowOptions)
 
   if (schedules.length > 0) {
     lines.push('  schedule:');
-    for (const s of schedules) lines.push(`    - cron: ${q(s.source)}`);
+    for (const s of schedules) lines.push(`    - cron: ${q(formatCron(s, 'github'))}`);
   }
   lines.push('  workflow_dispatch:', '    inputs:', '      job:');
   lines.push('        description: Job to run now');
   lines.push('        required: true');
   if (jobs.length > 0) {
     lines.push('        type: choice', '        options:');
-    for (const j of jobs) lines.push(`          - ${j.name}`);
+    for (const j of jobs) lines.push(`          - ${q(j.name)}`);
   } else {
     lines.push('        type: string');
   }
@@ -52,7 +53,7 @@ export function generateGithubWorkflow(config: Config, options: WorkflowOptions)
     // One run per schedule at a time; a slow run delays the next one instead
     // of overlapping with it.
     'concurrency:',
-    '  group: tgcron-${{ github.event.schedule || inputs.job }}',
+    `  group: tgcron-\${{ github.event.schedule || ${manualGroup(jobs)} }}`,
     '  cancel-in-progress: false',
     '',
     'jobs:',
@@ -80,52 +81,89 @@ export function generateGithubWorkflow(config: Config, options: WorkflowOptions)
   );
 
   for (const backup of backups) {
+    if (backup.destination.type !== 'artifact') continue;
     const dir = `${BACKUP_DIR}/${backup.name}`;
-    const present = `always() && hashFiles('${dir}/**') != ''`;
-    if (backup.destination.type === 'artifact') {
-      lines.push(
-        `      - name: Upload backup ${backup.name}`,
-        `        if: ${present}`,
-        `        uses: ${UPLOAD_ARTIFACT}`,
-        '        with:',
-        `          name: ${backup.name}-\${{ github.run_id }}`,
-        `          path: ${dir}/`,
-        `          retention-days: ${backup.destination.retentionDays}`,
-        '          if-no-files-found: ignore',
-      );
-    } else {
-      lines.push(
-        `      - name: Commit backup ${backup.name} to ${backup.destination.branch}`,
-        `        if: ${present}`,
-        '        run: |',
-        ...branchScript(backup.name, dir, backup.destination.branch).map((l) => `          ${l}`),
-      );
-    }
+    lines.push(
+      `      - name: Upload backup ${backup.name}`,
+      // Only a backup that finished has a manifest; a partial one is not shipped.
+      `        if: always() && hashFiles('${dir}/*/manifest.json') != ''`,
+      `        uses: ${UPLOAD_ARTIFACT}`,
+      '        with:',
+      `          name: ${backup.name}-\${{ github.run_id }}`,
+      `          path: ${dir}/`,
+      `          retention-days: ${backup.destination.retentionDays}`,
+      '          if-no-files-found: ignore',
+    );
+  }
+
+  const byBranch = new Map<string, string[]>();
+  for (const backup of backups) {
+    if (backup.destination.type !== 'branch') continue;
+    const jobs = byBranch.get(backup.destination.branch) ?? [];
+    jobs.push(backup.name);
+    byBranch.set(backup.destination.branch, jobs);
+  }
+  let index = 0;
+  for (const [branch, jobs] of byBranch) {
+    const present = jobs.map((j) => `hashFiles('${BACKUP_DIR}/${j}/*/manifest.json') != ''`);
+    lines.push(
+      `      - name: Commit backups to ${branch}`,
+      `        if: always() && (${present.join(' || ')})`,
+      '        run: |',
+      ...branchScript(jobs, branch, `.tgcron-branch-${index++}`).map((l) => `          ${l}`),
+    );
   }
 
   return `${lines.join('\n')}\n`;
 }
 
-// Commits the backup to a branch with no shared history, so backups never
-// mix with the project's code.
-function branchScript(job: string, dir: string, branch: string): string[] {
+/**
+ * A manual run joins the group of the job's schedule, so it waits for a
+ * scheduled run of the same job instead of overlapping it.
+ */
+function manualGroup(jobs: readonly Job[]): string {
+  const cases = jobs.map(
+    (j) => `inputs.job == '${j.name}' && '${formatCron(j.schedule, 'github')}'`,
+  );
+  return [...cases, 'inputs.job'].join(' || ');
+}
+
+/**
+ * Commits finished backups to a branch with no shared history, so backups
+ * never mix with the project's code. Another schedule may push to the same
+ * branch at the same time, so a rejected push starts over from the new tip.
+ */
+function branchScript(jobs: readonly string[], branch: string, dir: string): string[] {
   return [
     'set -euo pipefail',
     `branch=${sh(branch)}`,
+    `dir=${sh(dir)}`,
     "git config --global user.name 'github-actions[bot]'",
     "git config --global user.email '41898299+github-actions[bot]@users.noreply.github.com'",
-    'if git fetch --depth=1 origin "$branch"; then',
-    '  git worktree add -B "$branch" .tgcron-branch FETCH_HEAD',
-    'else',
-    '  git worktree add --detach .tgcron-branch',
-    '  git -C .tgcron-branch checkout --orphan "$branch"',
-    '  git -C .tgcron-branch rm -rfq .',
-    'fi',
-    `mkdir -p .tgcron-branch/${job}`,
-    `cp -R ${dir}/. .tgcron-branch/${job}/`,
-    `git -C .tgcron-branch add ${job}`,
-    `git -C .tgcron-branch commit -qm "Backup ${job} $(date -u +%Y-%m-%dT%H:%MZ)"`,
-    'git -C .tgcron-branch push origin "$branch"',
+    'git worktree remove --force "$dir" 2>/dev/null || true',
+    'git worktree add --detach "$dir"',
+    'for attempt in 1 2 3; do',
+    '  if git -C "$dir" fetch --depth=1 origin "refs/heads/$branch"; then',
+    '    git -C "$dir" checkout -q -f --detach FETCH_HEAD',
+    '  else',
+    '    git -C "$dir" checkout -q -f --orphan "tgcron-new-$attempt"',
+    '    git -C "$dir" rm -rfq --ignore-unmatch .',
+    '  fi',
+    `  for job in ${jobs.join(' ')}; do`,
+    `    for run in ${BACKUP_DIR}/"$job"/*/; do`,
+    '      [ -f "$run/manifest.json" ] || continue',
+    '      mkdir -p "$dir/$job"',
+    '      cp -R "${run%/}" "$dir/$job/"',
+    '    done',
+    '  done',
+    '  git -C "$dir" add -A',
+    '  if git -C "$dir" diff --cached --quiet; then echo "Nothing new to commit."; exit 0; fi',
+    '  git -C "$dir" commit -qm "Backup $(date -u +%Y-%m-%dT%H:%MZ)"',
+    '  if git -C "$dir" push origin "HEAD:refs/heads/$branch"; then exit 0; fi',
+    '  sleep $((attempt * 5))',
+    'done',
+    'echo "Could not push to $branch after 3 attempts." >&2',
+    'exit 1',
   ];
 }
 
