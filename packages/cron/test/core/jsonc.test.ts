@@ -19,6 +19,10 @@ test('keeps comment markers and commas inside strings', () => {
   });
 });
 
+test('ignores a byte order mark', () => {
+  assert.deepEqual(parseJsonc('\uFEFF{ "a": 1 }'), { a: 1 });
+});
+
 test('reports syntax errors from JSON.parse', () => {
   assert.throws(() => parseJsonc('{ "a": }'), SyntaxError);
 });

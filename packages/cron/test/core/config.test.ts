@@ -142,6 +142,21 @@ describe('validateConfig', () => {
       },
       /retentionDays: must be an integer from 1 to 90/,
     ],
+    ...['-x', '.hidden', 'x.lock', 'a//b', 'a/', 'main', 'gh-pages', 'HEAD', 'a..b'].map(
+      (branch): [string, unknown, RegExp] => [
+        `branch "${branch}"`,
+        {
+          jobs: {
+            b: {
+              schedule: '0 0 * * *',
+              use: 'tgcloud-cron/backup',
+              destination: { type: 'branch', branch },
+            },
+          },
+        },
+        /destination\.branch: /,
+      ],
+    ),
     [
       'unknown destination',
       {

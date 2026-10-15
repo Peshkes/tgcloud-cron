@@ -1,3 +1,4 @@
+import { clean } from 'tgcloud-api';
 import type { RunEvent } from './ports.js';
 
 const LEVEL_LABEL = { log: 'log', dbg: 'debug', inf: 'info', wrn: 'warn', err: 'error' } as const;
@@ -39,8 +40,10 @@ export function formatEvent(event: RunEvent): string[] {
         .filter(Boolean)
         .join(', ');
       if (event.ok) {
-        const value = event.value === undefined ? '' : `${formatValue(event.value)}  `;
-        return [`${prefix} ok      ${value}${timing}`];
+        // The value comes from job code: every line keeps the prefix, so a
+        // returned string cannot start a GitHub workflow command.
+        if (event.value === undefined) return [`${prefix} ok      ${timing}`];
+        return indent(formatValue(event.value), `${prefix} ok      `, timing);
       }
       return indent(event.error ?? 'failed', `${prefix} FAILED  `, timing);
     }
@@ -65,6 +68,7 @@ export function formatValue(value: unknown): string {
   } catch {
     text = String(value);
   }
+  text = clean(text);
   return text.length > MAX_VALUE_CHARS ? `${text.slice(0, MAX_VALUE_CHARS)}...` : text;
 }
 

@@ -57,6 +57,20 @@ test('multi-line messages keep the prefix on every line', () => {
   );
 });
 
+test('a returned string cannot start a line of its own', () => {
+  const lines = formatEvent({
+    type: 'end',
+    job: 'j',
+    runId: 'r',
+    ok: true,
+    value: 'done\n::error title=x::forged\u001b[2J',
+    durationMs: 0,
+  });
+  assert.equal(lines.length, 2);
+  assert.ok(lines.every((l) => l.startsWith('[j r]')));
+  assert.ok(!lines.join('').includes('\u001b'));
+});
+
 test('long values are cut', () => {
   const [line] = formatEvent({
     type: 'end',

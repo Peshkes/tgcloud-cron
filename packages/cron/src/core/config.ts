@@ -51,7 +51,10 @@ export type ConfigResult =
 const JOB_NAME = /^[A-Za-z][A-Za-z0-9_-]{0,63}$/;
 const MODULE_SEGMENT = /^[A-Za-z0-9_-]+$/;
 const SQL_IDENTIFIER = /^[A-Za-z_][A-Za-z0-9_]*$/;
-const BRANCH = /^[A-Za-z0-9._/-]{1,100}$/;
+const BRANCH_SEGMENT = /^[A-Za-z0-9_][A-Za-z0-9._-]*$/;
+// Backups are personal data. Pushing them to a branch that is deployed or
+// published, or that holds the code, would be a leak or worse.
+const RESERVED_BRANCHES = new Set(['head', 'main', 'master', 'gh-pages', 'develop', 'trunk']);
 
 const TOP_KEYS = ['$schema', 'jobs'];
 const MODULE_JOB_KEYS = ['schedule', 'enabled', 'module', 'args'];
@@ -234,13 +237,34 @@ function backupDestination(
   if (value.type === 'branch') {
     unknownKeys(value, ['type', 'branch'], path, fail);
     const branch = value.branch ?? 'tgcron-backups';
-    if (typeof branch !== 'string' || !BRANCH.test(branch) || branch.includes('..')) {
-      fail(`${path}.branch`, 'must be a valid git branch name');
+    if (typeof branch !== 'string') {
+      fail(`${path}.branch`, 'must be a string');
+      return undefined;
+    }
+    const problem = branchProblem(branch);
+    if (problem) {
+      fail(`${path}.branch`, problem);
       return undefined;
     }
     return { type: 'branch', branch };
   }
   fail(`${path}.type`, 'must be "artifact" or "branch"');
+  return undefined;
+}
+
+/** Git ref rules that matter here, stricter than `git check-ref-format`. */
+function branchProblem(branch: string): string | undefined {
+  if (branch.length > 100) return 'must be at most 100 characters';
+  const segments = branch.split('/');
+  const valid = segments.every(
+    (s) => BRANCH_SEGMENT.test(s) && !s.endsWith('.') && !s.endsWith('.lock') && !s.includes('..'),
+  );
+  if (!valid) {
+    return 'must be a git branch name of letters, digits, ".", "_", "-" and "/", not starting with "-" or "."';
+  }
+  if (RESERVED_BRANCHES.has(branch.toLowerCase())) {
+    return `"${branch}" holds code or is published; use a branch only for backups, e.g. "tgcron-backups"`;
+  }
   return undefined;
 }
 

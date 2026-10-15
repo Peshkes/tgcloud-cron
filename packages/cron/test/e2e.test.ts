@@ -29,7 +29,7 @@ function io(cwd: string, overrides: Partial<Io> = {}) {
     stderr: (l) => void err.push(l),
     fetch: async () => assert.fail('no network in this test'),
     now: () => new Date('2026-10-16T09:00:20Z'),
-    version: '0.1.0',
+    version: '0.2.0',
     ...overrides,
   };
   return { io: value, out, err };

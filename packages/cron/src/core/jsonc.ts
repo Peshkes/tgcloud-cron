@@ -4,7 +4,8 @@
  * positions still point at the right place.
  */
 export function parseJsonc(text: string): unknown {
-  return JSON.parse(stripJsonc(text));
+  // Windows editors may save a byte order mark, which JSON.parse rejects.
+  return JSON.parse(stripJsonc(text.replace(/^\uFEFF/, '')));
 }
 
 export function stripJsonc(text: string): string {
