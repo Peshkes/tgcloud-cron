@@ -47,18 +47,18 @@ It checks, in order:
 
 | Check | If it fails |
 | --- | --- |
-| `GET /get` returns deployed modules | The client's URL, auth or envelope is wrong. Compare the recorded response with `src/adapters/tgcloud/client.ts`. |
+| `GET /get` returns deployed modules | The client's URL, auth or envelope is wrong. Compare the recorded response with `packages/api/src/client.ts`. |
 | `/run` accepts synthetic modules and passes args | The core design does not hold. Fall back to a real `endpoints/` module guarded by a secret argument (see `docs/design.md`). |
 | `/run` reports a thrown error with logs | Error mapping in `TgcloudClient.run` needs the real shape. |
-| `/run` can read `sqlite_master` | Backups need `args.tables`; make it required or find another listing. |
+| `/run` can read `sqlite_master` | The exporter needs another way to list tables (`packages/backup/src/exporter.ts`). |
 | `/run` can page a table by rowid | The exporter query or parameter binding needs changing. |
 
-The run writes `test/fixtures/live/<date>.json` with sources and row values
+The run writes `packages/api/test/fixtures/live/<date>.json` with sources and row values
 removed. Read it before committing.
 
 ## 3. Update the project
 
-1. Compare the recorded exchanges with `test/fixtures/api/*.json`. Fix every
+1. Compare the recorded exchanges with `packages/api/test/fixtures/api/*.json`. Fix every
    fixture whose shape differs, then the client, until `npm test` passes.
 2. Run the example end to end: copy `examples/basic` into a new private
    repository, push the bot, add `TGCLOUD_TOKEN`, and trigger each job from
@@ -71,7 +71,7 @@ removed. Read it before committing.
 5. In the README, change each row of "Verification status" that now holds to
    "yes, <date>, @tgcloud/cli <version>", and remove the warning at the top if
    all of them do.
-6. Release a minor version and mention the verification in the changelog.
+6. Release new minor versions and mention the verification in each changelog.
 
 ## When the official CLI changes
 

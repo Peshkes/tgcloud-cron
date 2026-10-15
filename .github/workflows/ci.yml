@@ -35,10 +35,10 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm test
-      - run: npm run build
-      - name: Smoke-test the CLI
+      - name: Smoke-test the CLIs
         run: |
-          node dist/cli/main.js --version
-          cd examples/basic && node ../../dist/cli/main.js check
+          node packages/cron/dist/cli/main.js --version
+          node packages/backup/dist/main.js --version
+          cd examples/basic && node ../../packages/cron/dist/cli/main.js check
       - name: Check the package contents
-        run: npm pack --dry-run
+        run: npm pack --dry-run --workspaces

@@ -11,7 +11,7 @@
     "node": ">=18.17"
   },
   "scripts": {
-    "build": "tsc -b packages/api packages/backup packages/cron",
+    "build": "npm run clean && tsc -b packages/api packages/backup packages/cron",
     "typecheck": "tsc -b packages/api packages/backup packages/cron && tsc -p packages/api/tsconfig.test.json --noEmit && tsc -p packages/backup/tsconfig.test.json --noEmit && tsc -p packages/cron/tsconfig.test.json --noEmit",
     "lint": "biome check .",
     "format": "biome check --write .",
