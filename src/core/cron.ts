@@ -209,6 +209,36 @@ export function nextRuns(cron: CronExpression, after: Date, count = 1): Date[] {
 }
 
 /**
+ * The latest fire time at or before `at`, or undefined if there is none in
+ * the search window. Used to label a tick whose scheduler does not report
+ * the scheduled time (GitHub Actions starts runs late under load).
+ */
+export function previousRun(cron: CronExpression, at: Date): Date | undefined {
+  let t = Math.floor(at.getTime() / MINUTE) * MINUTE;
+  const limit = at.getTime() - SEARCH_LIMIT_DAYS * 24 * 60 * MINUTE;
+
+  while (t >= limit) {
+    const d = new Date(t);
+    const y = d.getUTCFullYear();
+    const mo = d.getUTCMonth();
+    const day = d.getUTCDate();
+    // Each branch jumps to the last minute of the previous month, day or hour.
+    if (!cron.months.includes(mo + 1)) {
+      t = Date.UTC(y, mo, 1) - MINUTE;
+    } else if (!dayMatches(cron, d)) {
+      t = Date.UTC(y, mo, day) - MINUTE;
+    } else if (!cron.hours.includes(d.getUTCHours())) {
+      t = Date.UTC(y, mo, day, d.getUTCHours()) - MINUTE;
+    } else if (!cron.minutes.includes(d.getUTCMinutes())) {
+      t -= MINUTE;
+    } else {
+      return d;
+    }
+  }
+  return undefined;
+}
+
+/**
  * The shortest gap, in minutes, between two consecutive fire times. Used to
  * enforce the 5-minute floor of GitHub Actions. Returns Infinity for an
  * expression that fires at most once a day.

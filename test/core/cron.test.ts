@@ -5,6 +5,7 @@ import {
   matches,
   nextRuns,
   parseCron,
+  previousRun,
   shortestIntervalMinutes,
 } from '../../src/core/cron.js';
 
@@ -133,6 +134,24 @@ describe('nextRuns', () => {
       '2026-10-20T08:00:00.000Z',
     ]);
   });
+});
+
+describe('previousRun', () => {
+  const cases: [string, string, string | undefined][] = [
+    ['0 9 * * *', '2026-10-16T09:00:00Z', '2026-10-16T09:00:00.000Z'],
+    ['0 9 * * *', '2026-10-16T09:47:31Z', '2026-10-16T09:00:00.000Z'],
+    ['0 9 * * *', '2026-10-16T08:59:00Z', '2026-10-15T09:00:00.000Z'],
+    ['*/15 * * * *', '2026-10-16T10:14:00Z', '2026-10-16T10:00:00.000Z'],
+    ['30 2 1 * *', '2026-01-01T00:00:00Z', '2025-12-01T02:30:00.000Z'],
+    ['0 0 29 2 *', '2027-01-01T00:00:00Z', '2024-02-29T00:00:00.000Z'],
+    ['0 0 * * MON', '2026-10-15T12:00:00Z', '2026-10-12T00:00:00.000Z'],
+    ['0 0 30 2 *', '2026-10-15T12:00:00Z', undefined],
+  ];
+  for (const [expr, at, expected] of cases) {
+    test(`"${expr}" at ${at}`, () => {
+      assert.equal(previousRun(parseCron(expr), new Date(at))?.toISOString(), expected);
+    });
+  }
 });
 
 describe('shortestIntervalMinutes', () => {
