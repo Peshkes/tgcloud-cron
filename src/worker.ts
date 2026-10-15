@@ -17,6 +17,16 @@ export interface ScheduledController {
   readonly scheduledTime: number;
 }
 
+// Run ids only label log lines, so a non-cryptographic fallback is fine where
+// Web Crypto is missing (Node 18 without flags).
+function newRunId(): string {
+  const webCrypto = (globalThis as { crypto?: { randomUUID?: () => string } }).crypto;
+  if (webCrypto?.randomUUID) return webCrypto.randomUUID().slice(0, 8);
+  return Math.floor(Math.random() * 0x100000000)
+    .toString(16)
+    .padStart(8, '0');
+}
+
 export function createScheduledHandler(options: { jobs: unknown }) {
   const parsed = validateConfig({ jobs: options.jobs });
   if (!parsed.ok) {
@@ -45,7 +55,7 @@ export function createScheduledHandler(options: { jobs: unknown }) {
           for (const line of formatEvent(event)) console.log(line);
         },
         now: () => new Date(),
-        newRunId: () => crypto.randomUUID().slice(0, 8),
+        newRunId,
       },
       new Date(controller.scheduledTime),
     );

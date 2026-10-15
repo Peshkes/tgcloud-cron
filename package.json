@@ -30,6 +30,14 @@
       "types": "./dist/index.d.ts",
       "default": "./dist/index.js"
     },
+    "./client": {
+      "types": "./dist/client.d.ts",
+      "default": "./dist/client.js"
+    },
+    "./backup": {
+      "types": "./dist/backup.d.ts",
+      "default": "./dist/backup.js"
+    },
     "./worker": {
       "types": "./dist/worker.d.ts",
       "default": "./dist/worker.js"
@@ -57,7 +65,7 @@
   },
   "devDependencies": {
     "@biomejs/biome": "2.5.15",
-    "@types/node": "^20.19.43",
+    "@types/node": "^18.19.0",
     "typescript": "7.0.2"
   }
 }
