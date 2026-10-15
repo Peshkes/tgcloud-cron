@@ -1,0 +1,63 @@
+{
+  "name": "tgcloud-cron",
+  "version": "0.1.0",
+  "description": "Scheduled jobs for Telegram Serverless (tgcloud), triggered by GitHub Actions or Cloudflare Cron Triggers",
+  "keywords": [
+    "telegram",
+    "telegram-bot",
+    "serverless",
+    "tgcloud",
+    "cron",
+    "scheduler",
+    "github-actions",
+    "cloudflare-workers",
+    "backup"
+  ],
+  "license": "MIT",
+  "author": "Peshkes",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Peshkes/tgcloud-cron.git"
+  },
+  "homepage": "https://github.com/Peshkes/tgcloud-cron#readme",
+  "bugs": "https://github.com/Peshkes/tgcloud-cron/issues",
+  "type": "module",
+  "bin": {
+    "tgcron": "dist/cli/main.js"
+  },
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./worker": {
+      "types": "./dist/worker.d.ts",
+      "default": "./dist/worker.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "types": "./dist/index.d.ts",
+  "files": [
+    "dist",
+    "schema.json",
+    "CHANGELOG.md"
+  ],
+  "engines": {
+    "node": ">=18.17"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "lint": "biome check .",
+    "format": "biome check --write .",
+    "pretest": "rm -rf build-test && tsc -p tsconfig.json",
+    "test": "node --test build-test/test/",
+    "verify:live": "npm run build && node scripts/verify-live.mjs",
+    "prepublishOnly": "npm run lint && npm run typecheck && npm test && npm run build"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "2.5.15",
+    "@types/node": "^20.19.43",
+    "typescript": "7.0.2"
+  }
+}
