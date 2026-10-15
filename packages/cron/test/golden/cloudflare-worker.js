@@ -8,6 +8,11 @@ const jobs = {
     "module": "lib/cron/dailyDigest",
     "args": {}
   },
+  "weekdays": {
+    "schedule": "0 8 * * 1-5",
+    "module": "lib/cron/weekdays",
+    "args": {}
+  },
   "syncPrices": {
     "schedule": "* * * * *",
     "module": "lib/cron/syncPrices",

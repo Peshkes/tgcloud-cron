@@ -31,6 +31,14 @@ describe('registry', () => {
     assert.deepEqual(jobsForSchedule(sample, '1 1 * * *'), []);
   });
 
+  test('matches a schedule however its weekdays are spelled', () => {
+    const c = config({ weekdays: { schedule: '0 8 * * 1-5' } });
+    assert.deepEqual(
+      jobsForSchedule(c, '0 8 * * MON-FRI').map((j) => j.name),
+      ['weekdays'],
+    );
+  });
+
   test('lists distinct schedules of enabled jobs', () => {
     assert.deepEqual(
       distinctSchedules(sample).map((s) => s.source),

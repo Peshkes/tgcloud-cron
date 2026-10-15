@@ -120,6 +120,14 @@ function parseField(expression: string, text: string, spec: FieldSpec): number[]
     let from: number;
     let to: number;
     if (rangePart === '*') {
+      // `*/2` in the weekday field means different days on different crons
+      // (Cloudflare counts 1-7 from Sunday), and it changes how the two day
+      // fields combine. Listing the days says the same without ambiguity.
+      if (stepPart !== undefined && spec.name === 'day of week') {
+        fail(
+          'a step over all weekdays is ambiguous; list the days instead, e.g. "SUN,TUE,THU,SAT"',
+        );
+      }
       from = spec.min;
       to = spec.name === 'day of week' ? 6 : spec.max;
     } else if (rangePart?.includes('-')) {
@@ -154,6 +162,52 @@ function parseValue(text: string, spec: FieldSpec, fail: (reason: string) => nev
     if (i !== -1) return i + spec.min;
   }
   return fail(text === '' ? 'missing value' : `"${text}" is not a valid value`);
+}
+
+export type Dialect = 'github' | 'cloudflare';
+
+/**
+ * The expression as a target expects it. Only the weekday field differs:
+ * GitHub reads 0-6 from Sunday, Cloudflare reads 1-7 from Sunday, so the
+ * days are written as numbers for one and as names for the other.
+ */
+export function formatCron(cron: CronExpression, dialect: Dialect): string {
+  const fields = cron.source.split(' ');
+  if (fields[4] !== '*') fields[4] = formatWeekdays(cron.daysOfWeek, dialect);
+  return fields.join(' ');
+}
+
+function formatWeekdays(days: readonly number[], dialect: Dialect): string {
+  const name = (d: number) => (dialect === 'cloudflare' ? (DAY_NAMES[d] as string) : String(d));
+  const parts: string[] = [];
+  for (let i = 0; i < days.length; ) {
+    let j = i;
+    while (j + 1 < days.length && (days[j + 1] as number) === (days[j] as number) + 1) j++;
+    const from = days[i] as number;
+    const to = days[j] as number;
+    if (to - from >= 2) parts.push(`${name(from)}-${name(to)}`);
+    else for (let d = from; d <= to; d++) parts.push(name(d));
+    i = j + 1;
+  }
+  return parts.join(',');
+}
+
+/**
+ * Identifies what an expression means rather than how it is written, so
+ * `0 9 * * 1-5`, `0 9 * * MON-FRI` and `0 9 * * mon,tue,wed,thu,fri` match.
+ */
+export function scheduleKey(cron: CronExpression): string {
+  return [
+    cron.minutes,
+    cron.hours,
+    cron.daysOfMonth,
+    cron.months,
+    cron.daysOfWeek,
+    cron.anyDayOfMonth,
+    cron.anyDayOfWeek,
+  ]
+    .map(String)
+    .join('|');
 }
 
 export function matches(cron: CronExpression, date: Date): boolean {

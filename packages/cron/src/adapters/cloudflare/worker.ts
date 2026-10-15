@@ -1,4 +1,5 @@
 import type { Config, ModuleJob } from '../../core/config.js';
+import { formatCron } from '../../core/cron.js';
 import { distinctSchedules, enabledJobs } from '../../core/registry.js';
 
 export const CLOUDFLARE_DIR = 'cloudflare';
@@ -38,7 +39,7 @@ export function generateCloudflare(config: Config, options: CloudflareOptions): 
   }
 
   const jobs = enabledJobs(config).filter((j): j is ModuleJob => j.kind === 'module');
-  const crons = distinctSchedules({ jobs }).map((s) => s.source);
+  const crons = distinctSchedules({ jobs }).map((s) => formatCron(s, 'cloudflare'));
 
   const wrangler = {
     name,

@@ -2,10 +2,12 @@ import assert from 'node:assert/strict';
 import { describe, test } from 'node:test';
 import {
   CronSyntaxError,
+  formatCron,
   matches,
   nextRuns,
   parseCron,
   previousRun,
+  scheduleKey,
   shortestIntervalMinutes,
 } from '../../src/core/cron.js';
 
@@ -22,7 +24,6 @@ describe('parseCron', () => {
     ['0 0 * * MON-FRI', { daysOfWeek: [1, 2, 3, 4, 5] }],
     ['0 0 * * 5-7', { daysOfWeek: [0, 5, 6] }],
     ['0 0 * * 7', { daysOfWeek: [0] }],
-    ['0 0 * * */2', { daysOfWeek: [0, 2, 4, 6] }],
     ['  0   9  *  *  * ', { minutes: [0], hours: [9] }],
   ];
   for (const [expr, expected] of valid) {
@@ -65,6 +66,7 @@ describe('parseCron', () => {
     ['1-2-3 * * * *', /malformed range/],
     ['*/5/2 * * * *', /more than one/],
     ['- * * * *', /missing value/],
+    ['0 0 * * */2', /list the days instead/],
   ];
   for (const [expr, message] of invalid) {
     test(`rejects "${expr}"`, () => {
@@ -74,6 +76,37 @@ describe('parseCron', () => {
       );
     });
   }
+});
+
+describe('formatCron', () => {
+  const cases: [string, string, string][] = [
+    ['0 9 * * *', '0 9 * * *', '0 9 * * *'],
+    ['*/15 9-17 1,15 JAN *', '*/15 9-17 1,15 JAN *', '*/15 9-17 1,15 JAN *'],
+    ['0 9 * * 1-5', '0 9 * * 1-5', '0 9 * * MON-FRI'],
+    ['0 9 * * mon-fri', '0 9 * * 1-5', '0 9 * * MON-FRI'],
+    ['0 9 * * 7', '0 9 * * 0', '0 9 * * SUN'],
+    ['0 9 * * 0,6', '0 9 * * 0,6', '0 9 * * SUN,SAT'],
+    ['0 9 * * 5-7', '0 9 * * 0,5,6', '0 9 * * SUN,FRI,SAT'],
+    ['0 9 * * 1,2,3,5', '0 9 * * 1-3,5', '0 9 * * MON-WED,FRI'],
+  ];
+  for (const [source, github, cloudflare] of cases) {
+    test(`"${source}"`, () => {
+      const cron = parseCron(source);
+      assert.equal(formatCron(cron, 'github'), github);
+      assert.equal(formatCron(cron, 'cloudflare'), cloudflare);
+      // Both spellings mean the original schedule.
+      assert.equal(scheduleKey(parseCron(github)), scheduleKey(cron));
+      assert.equal(scheduleKey(parseCron(cloudflare)), scheduleKey(cron));
+    });
+  }
+
+  test('scheduleKey tells different schedules apart', () => {
+    assert.notEqual(scheduleKey(parseCron('0 9 * * 1')), scheduleKey(parseCron('0 9 * * 2')));
+    assert.notEqual(
+      scheduleKey(parseCron('0 0 1 * MON')),
+      scheduleKey(parseCron('0 0 1-31 * MON')),
+    );
+  });
 });
 
 describe('matches', () => {

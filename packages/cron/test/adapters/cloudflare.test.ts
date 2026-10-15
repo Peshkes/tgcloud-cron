@@ -17,6 +17,7 @@ describe('generateCloudflare', () => {
   const files = generateCloudflare(
     config({
       dailyDigest: { schedule: '0 9 * * *' },
+      weekdays: { schedule: '0 8 * * 1-5' },
       syncPrices: { schedule: '* * * * *', args: { currency: 'USD' } },
       backup: { schedule: '30 2 * * *', use: 'tgcloud-cron/backup' },
       paused: { schedule: '0 3 * * *', enabled: false },
@@ -38,13 +39,13 @@ describe('generateCloudflare', () => {
     const wrangler = parseJsonc(byPath['cloudflare/wrangler.jsonc'] ?? '') as {
       triggers: { crons: string[] };
     };
-    assert.deepEqual(wrangler.triggers.crons, ['0 9 * * *', '* * * * *']);
+    assert.deepEqual(wrangler.triggers.crons, ['0 9 * * *', '0 8 * * MON-FRI', '* * * * *']);
   });
 
   test('embeds a job table that validates', () => {
     const source = byPath['cloudflare/worker.js'] ?? '';
     const table = JSON.parse(/const jobs = (\{[\s\S]*?\n\});/.exec(source)?.[1] ?? 'null');
-    assert.deepEqual(Object.keys(table), ['dailyDigest', 'syncPrices']);
+    assert.deepEqual(Object.keys(table), ['dailyDigest', 'weekdays', 'syncPrices']);
     assert.equal(validateConfig({ jobs: table }).ok, true);
   });
 

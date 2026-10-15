@@ -1,5 +1,5 @@
 import type { Config, Job } from './config.js';
-import { type CronExpression, parseCron, shortestIntervalMinutes } from './cron.js';
+import { type CronExpression, parseCron, scheduleKey, shortestIntervalMinutes } from './cron.js';
 
 export type Target = 'github' | 'cloudflare';
 export const TARGETS: readonly Target[] = ['github', 'cloudflare'];
@@ -13,19 +13,21 @@ export function enabledJobs(config: Config): Job[] {
 }
 
 /**
- * Enabled jobs whose schedule is the given expression. Schedulers report the
- * expression that fired as text, so comparison is on the normalized source.
+ * Enabled jobs whose schedule means the same as `expression`. Schedulers
+ * report the expression that fired as the generated text, which can spell
+ * weekdays differently from tgcron.json.
  */
 export function jobsForSchedule(config: Config, expression: string): Job[] {
-  const source = parseCron(expression).source;
-  return enabledJobs(config).filter((j) => j.schedule.source === source);
+  const key = scheduleKey(parseCron(expression));
+  return enabledJobs(config).filter((j) => scheduleKey(j.schedule) === key);
 }
 
 /** Distinct schedules of enabled jobs, in first-seen order. */
 export function distinctSchedules(config: Config): CronExpression[] {
   const seen = new Map<string, CronExpression>();
   for (const job of enabledJobs(config)) {
-    if (!seen.has(job.schedule.source)) seen.set(job.schedule.source, job.schedule);
+    const key = scheduleKey(job.schedule);
+    if (!seen.has(key)) seen.set(key, job.schedule);
   }
   return [...seen.values()];
 }
