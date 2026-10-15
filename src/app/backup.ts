@@ -59,11 +59,13 @@ export async function runBackup(
     progress(`found ${tables.length} table(s): ${tables.map((t) => t.name).join(', ') || '-'}`);
   }
 
-  const files: Record<string, { rows: number; bytes: number; sha256: string }> = {};
+  const files: Record<string, { table?: string; rows: number; bytes: number; sha256: string }> = {};
+  const usedNames = new Set<string>(['schema', 'manifest']);
   let totalRows = 0;
 
   for (const table of tables) {
-    const file = sink.open(`${table.name}.ndjson`);
+    const fileName = `${tableFileName(table.name, usedNames)}.ndjson`;
+    const file = sink.open(fileName);
     let rows = 0;
     let after = 0;
     let pageSize = job.pageSize;
@@ -93,7 +95,7 @@ export async function runBackup(
       if (page.rows.length < pageSize) break;
     }
 
-    files[`${table.name}.ndjson`] = { rows, ...(await file.close()) };
+    files[fileName] = { table: table.name, rows, ...(await file.close()) };
     totalRows += rows;
     progress(`${table.name}: ${rows} row(s)`);
   }
@@ -119,6 +121,22 @@ export async function runBackup(
   await file.close();
 
   return { location: sink.location, tables: tables.length, rows: totalRows };
+}
+
+/**
+ * A file name for a table. Table names come from the database and SQLite
+ * accepts any text in a quoted name, including `../x`, so only a safe subset
+ * is used as is. Names are compared case-insensitively because macOS and
+ * Windows file systems are; the manifest maps every file back to its table.
+ */
+export function tableFileName(table: string, used: Set<string>): string {
+  const base = /^[A-Za-z0-9_-]{1,100}$/.test(table)
+    ? table
+    : table.replace(/[^A-Za-z0-9_-]/g, '_').slice(0, 100) || 'table';
+  let name = base;
+  for (let i = 2; used.has(name.toLowerCase()); i++) name = `${base}-${i}`;
+  used.add(name.toLowerCase());
+  return name;
 }
 
 function parsePage(value: unknown): Page {

@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import { describe, test } from 'node:test';
 import { ApiError } from '../../src/adapters/tgcloud/client.js';
 import { BACKUP_MODULE } from '../../src/adapters/tgcloud/entry.js';
+import { tableFileName } from '../../src/app/backup.js';
 import { runJob } from '../../src/app/run.js';
 import { type BackupJob, validateConfig } from '../../src/core/config.js';
 import { loadExporter } from '../helpers/exporter.js';
@@ -113,6 +114,7 @@ describe('backup job', () => {
     const manifest = JSON.parse(sink.files.get('manifest.json') ?? '{}');
     assert.equal(manifest.app, 'app123');
     assert.deepEqual(manifest.files['users.ndjson'], {
+      table: 'users',
       rows: 3,
       bytes: sink.files.get('users.ndjson')?.length,
       sha256: 'sha-of-users.ndjson',
@@ -163,5 +165,24 @@ describe('backup job', () => {
       outcome.error?.message ?? '',
       /backup of table "users" failed after 0 rows: no such table/,
     );
+  });
+});
+
+describe('tableFileName', () => {
+  test('keeps safe names and rewrites the rest', () => {
+    const used = new Set<string>();
+    assert.equal(tableFileName('users', used), 'users');
+    assert.equal(tableFileName('../evil', used), '___evil');
+    assert.equal(tableFileName('my table', used), 'my_table');
+    assert.equal(tableFileName('', used), 'table');
+  });
+
+  test('avoids collisions, case-insensitively, and the reserved names', () => {
+    const used = new Set<string>(['schema', 'manifest']);
+    assert.equal(tableFileName('Users', used), 'Users');
+    assert.equal(tableFileName('users', used), 'users-2');
+    assert.equal(tableFileName('a b', used), 'a_b');
+    assert.equal(tableFileName('a_b', used), 'a_b-2');
+    assert.equal(tableFileName('schema', used), 'schema-2');
   });
 });

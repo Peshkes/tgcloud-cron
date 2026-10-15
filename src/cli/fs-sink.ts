@@ -16,6 +16,9 @@ export function fileSink(root: string, job: string, startedAt: Date): BackupSink
   return {
     location: relative(root, dir) || '.',
     open(name: string) {
+      if (!/^[A-Za-z0-9_.-]+$/.test(name) || name.startsWith('.')) {
+        throw new Error(`refusing to write backup file "${name}"`);
+      }
       const path = join(dir, name);
       const hash = createHash('sha256');
       let bytes = 0;
