@@ -1,0 +1,52 @@
+{
+  "name": "tgcloud-backup",
+  "version": "0.1.0",
+  "description": "Export a Telegram Serverless (tgcloud) bot's SQLite tables to NDJSON",
+  "keywords": [
+    "telegram",
+    "telegram-bot",
+    "serverless",
+    "tgcloud",
+    "backup",
+    "export",
+    "sqlite",
+    "ndjson"
+  ],
+  "license": "MIT",
+  "author": "Peshkes",
+  "type": "module",
+  "engines": {
+    "node": ">=18.17"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Peshkes/tgcloud-cron.git",
+    "directory": "packages/backup"
+  },
+  "homepage": "https://github.com/Peshkes/tgcloud-cron/tree/main/packages/backup#readme",
+  "bugs": "https://github.com/Peshkes/tgcloud-cron/issues",
+  "bin": {
+    "tgbackup": "dist/main.js"
+  },
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "types": "./dist/index.d.ts",
+  "files": [
+    "dist",
+    "CHANGELOG.md"
+  ],
+  "scripts": {
+    "build": "tsc -b",
+    "pretest": "node -e \"require('node:fs').rmSync('build-test',{recursive:true,force:true})\" && tsc -p tsconfig.test.json",
+    "test": "node ../../scripts/test.mjs",
+    "prepublishOnly": "npm run build --prefix ../.. && npm test"
+  },
+  "dependencies": {
+    "tgcloud-api": "^0.1.0"
+  }
+}

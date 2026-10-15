@@ -1,67 +1,23 @@
 {
-  "name": "tgcloud-cron",
-  "version": "0.1.0",
-  "description": "Scheduled jobs for Telegram Serverless (tgcloud), triggered by GitHub Actions or Cloudflare Cron Triggers",
-  "keywords": [
-    "telegram",
-    "telegram-bot",
-    "serverless",
-    "tgcloud",
-    "cron",
-    "scheduler",
-    "github-actions",
-    "cloudflare-workers",
-    "backup"
-  ],
-  "license": "MIT",
-  "author": "Peshkes",
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/Peshkes/tgcloud-cron.git"
-  },
-  "homepage": "https://github.com/Peshkes/tgcloud-cron#readme",
-  "bugs": "https://github.com/Peshkes/tgcloud-cron/issues",
+  "name": "tgcloud-cron-monorepo",
+  "private": true,
   "type": "module",
-  "bin": {
-    "tgcron": "dist/cli/main.js"
-  },
-  "exports": {
-    ".": {
-      "types": "./dist/index.d.ts",
-      "default": "./dist/index.js"
-    },
-    "./client": {
-      "types": "./dist/client.d.ts",
-      "default": "./dist/client.js"
-    },
-    "./backup": {
-      "types": "./dist/backup.d.ts",
-      "default": "./dist/backup.js"
-    },
-    "./worker": {
-      "types": "./dist/worker.d.ts",
-      "default": "./dist/worker.js"
-    },
-    "./package.json": "./package.json"
-  },
-  "types": "./dist/index.d.ts",
-  "files": [
-    "dist",
-    "schema.json",
-    "CHANGELOG.md"
+  "workspaces": [
+    "packages/api",
+    "packages/backup",
+    "packages/cron"
   ],
   "engines": {
     "node": ">=18.17"
   },
   "scripts": {
-    "build": "tsc -p tsconfig.build.json",
-    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "build": "tsc -b packages/api packages/backup packages/cron",
+    "typecheck": "tsc -b packages/api packages/backup packages/cron && tsc -p packages/api/tsconfig.test.json --noEmit && tsc -p packages/backup/tsconfig.test.json --noEmit && tsc -p packages/cron/tsconfig.test.json --noEmit",
     "lint": "biome check .",
     "format": "biome check --write .",
-    "pretest": "node -e \"require('node:fs').rmSync('build-test',{recursive:true,force:true})\" && tsc -p tsconfig.json",
-    "test": "node scripts/test.mjs",
+    "test": "npm run build && npm test --workspaces",
     "verify:live": "npm run build && node scripts/verify-live.mjs",
-    "prepublishOnly": "npm run lint && npm run typecheck && npm test && npm run build"
+    "clean": "node -e \"for (const p of ['api','backup','cron']) for (const d of ['dist','build-test','.tsbuildinfo']) require('node:fs').rmSync('packages/'+p+'/'+d,{recursive:true,force:true})\""
   },
   "devDependencies": {
     "@biomejs/biome": "2.5.15",

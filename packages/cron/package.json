@@ -1,0 +1,59 @@
+{
+  "name": "tgcloud-cron",
+  "version": "0.2.0",
+  "description": "Scheduled jobs for Telegram Serverless (tgcloud) bots, triggered by GitHub Actions or Cloudflare Cron Triggers",
+  "keywords": [
+    "telegram",
+    "telegram-bot",
+    "serverless",
+    "tgcloud",
+    "cron",
+    "scheduler",
+    "github-actions",
+    "cloudflare-workers",
+    "backup"
+  ],
+  "license": "MIT",
+  "author": "Peshkes",
+  "type": "module",
+  "engines": {
+    "node": ">=18.17"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Peshkes/tgcloud-cron.git",
+    "directory": "packages/cron"
+  },
+  "homepage": "https://github.com/Peshkes/tgcloud-cron/tree/main/packages/cron#readme",
+  "bugs": "https://github.com/Peshkes/tgcloud-cron/issues",
+  "bin": {
+    "tgcron": "dist/cli/main.js"
+  },
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./worker": {
+      "types": "./dist/worker.d.ts",
+      "default": "./dist/worker.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "types": "./dist/index.d.ts",
+  "files": [
+    "dist",
+    "CHANGELOG.md",
+    "schema.json"
+  ],
+  "scripts": {
+    "build": "tsc -b",
+    "pretest": "node -e \"require('node:fs').rmSync('build-test',{recursive:true,force:true})\" && tsc -p tsconfig.test.json",
+    "test": "node ../../scripts/test.mjs",
+    "prepublishOnly": "npm run build --prefix ../.. && npm test"
+  },
+  "dependencies": {
+    "tgcloud-api": "^0.1.0",
+    "tgcloud-backup": "^0.1.0"
+  }
+}

@@ -9,20 +9,16 @@
 
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { TgcloudClient } from '../dist/adapters/tgcloud/client.js';
-import {
-  BACKUP_MODULE,
-  BACKUP_SOURCE,
-  ENTRY_MODULE,
-  entrySource,
-} from '../dist/adapters/tgcloud/entry.js';
+import { baseUrlFromEnv, TgcloudClient } from 'tgcloud-api';
+import { BACKUP_MODULE, BACKUP_SOURCE } from 'tgcloud-backup';
+import { ENTRY_MODULE, entrySource } from 'tgcloud-cron';
 
 const token = process.env.TGCLOUD_TOKEN;
 if (!token) {
   console.error('Set TGCLOUD_TOKEN to the CLI access token of a test bot.');
   process.exit(3);
 }
-const baseUrl = process.env.TG_CLOUD_API_URL || 'https://cloud.telegram.org';
+const baseUrl = baseUrlFromEnv(process.env);
 
 const exchanges = [];
 const recordingFetch = async (url, init) => {
@@ -98,19 +94,19 @@ await check('/run can read sqlite_master', async () => {
 });
 
 await check('/run can page a table by rowid', async () => {
-  const table = tables.find((t) => !t.withoutRowid);
+  const table = tables.find((t) => t.rowid !== null);
   if (!table) return 'skipped: no rowid table';
   const r = await client.run(
     BACKUP_MODULE,
     backupSources,
-    { op: 'page', table: table.name, after: 0, limit: 5 },
+    { op: 'page', table: table.name, rowid: table.rowid, after: null, limit: 5 },
     { idempotent: true },
   );
   if (!r.ok) throw r.error;
   return `${table.name}: ${r.value.rows.length} rows`;
 });
 
-const dir = join('test', 'fixtures', 'live');
+const dir = join('packages', 'api', 'test', 'fixtures', 'live');
 mkdirSync(dir, { recursive: true });
 const file = join(dir, `${new Date().toISOString().slice(0, 10)}.json`);
 writeFileSync(file, `${JSON.stringify({ checks, exchanges }, null, 2)}\n`);

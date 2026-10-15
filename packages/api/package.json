@@ -1,0 +1,43 @@
+{
+  "name": "tgcloud-api",
+  "version": "0.1.0",
+  "description": "Client for the Telegram Serverless (tgcloud) management API: read deployed code and run modules on the platform",
+  "keywords": [
+    "telegram",
+    "telegram-bot",
+    "serverless",
+    "tgcloud",
+    "api-client"
+  ],
+  "license": "MIT",
+  "author": "Peshkes",
+  "type": "module",
+  "engines": {
+    "node": ">=18.17"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Peshkes/tgcloud-cron.git",
+    "directory": "packages/api"
+  },
+  "homepage": "https://github.com/Peshkes/tgcloud-cron/tree/main/packages/api#readme",
+  "bugs": "https://github.com/Peshkes/tgcloud-cron/issues",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "types": "./dist/index.d.ts",
+  "files": [
+    "dist",
+    "CHANGELOG.md"
+  ],
+  "scripts": {
+    "build": "tsc -b",
+    "pretest": "node -e \"require('node:fs').rmSync('build-test',{recursive:true,force:true})\" && tsc -p tsconfig.test.json",
+    "test": "node ../../scripts/test.mjs",
+    "prepublishOnly": "npm run build --prefix ../.. && npm test"
+  }
+}

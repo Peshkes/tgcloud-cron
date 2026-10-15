@@ -6,7 +6,7 @@
     "useIgnoreFile": true
   },
   "files": {
-    "includes": ["**", "!test/golden", "!test/fixtures"]
+    "includes": ["**", "!**/test/golden", "!**/test/fixtures", "!**/dist", "!**/build-test"]
   },
   "formatter": {
     "enabled": true,
@@ -35,7 +35,7 @@
   },
   "overrides": [
     {
-      "includes": ["src/adapters/github/**"],
+      "includes": ["packages/cron/src/adapters/github/**"],
       "linter": {
         "rules": {
           "suspicious": {
