@@ -1,0 +1,12 @@
+{
+  "$schema": "./node_modules/tgcloud-cron/schema.json",
+  "jobs": {
+    "dailyDigest": { "schedule": "0 9 * * *", "args": { "limit": 200 } },
+    "syncPrices": { "schedule": "*/15 * * * *", "args": { "coins": ["bitcoin", "toncoin"] } },
+    "backup": {
+      "schedule": "30 2 * * *",
+      "use": "tgcloud-cron/backup",
+      "destination": { "type": "artifact", "retentionDays": 14 }
+    }
+  }
+}
