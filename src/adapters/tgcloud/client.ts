@@ -165,22 +165,24 @@ export class TgcloudClient {
    *
    * A job failure is returned, not thrown, together with the logs the
    * platform captured. Auth, network and protocol errors are thrown.
+   *
+   * By default only 429 is retried: any other failure may arrive after the
+   * job has already run, and running it twice can send messages twice. Pass
+   * `idempotent: true` for read-only code to retry every transient error.
    */
   async run(
     module: string,
     sources: Readonly<Record<string, string>>,
     args: Record<string, unknown>,
-    ctx: Record<string, unknown> = {},
+    options: { ctx?: Record<string, unknown>; idempotent?: boolean } = {},
   ): Promise<RunResult> {
     let result: unknown;
     try {
-      // Only 429 is retried: any other failure may arrive after the job has
-      // already run, and running it twice can send messages twice.
       result = await this.call(
         'POST',
         '/run',
-        { module, sources, args, ctx },
-        (err) => err.kind === 'rate_limit',
+        { module, sources, args, ctx: options.ctx ?? {} },
+        (err) => options.idempotent === true || err.kind === 'rate_limit',
       );
     } catch (err) {
       if (err instanceof ApiError && err.kind === 'request') {
