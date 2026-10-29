@@ -20,7 +20,7 @@
     "clean": "node -e \"for (const p of ['api','backup','cron']) for (const d of ['dist','build-test','.tsbuildinfo']) require('node:fs').rmSync('packages/'+p+'/'+d,{recursive:true,force:true})\""
   },
   "devDependencies": {
-    "@biomejs/biome": "2.5.15",
+    "@biomejs/biome": "2.6.3",
     "@types/node": "^18.19.0",
     "typescript": "7.0.2"
   }
